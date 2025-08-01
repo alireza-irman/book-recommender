@@ -1,17 +1,15 @@
-# main.py
+from recommender import recommend_books
+import pandas as pd
 
-from recommender import BookRecommender
+# Load user-item matrix to validate user ID
+user_item_matrix = pd.read_csv("data/user_item_matrix.csv", index_col=0)
 
-# === Define path to matrix file ===
-matrix_path = "fD:/AI/book_recommender_project/final_project/data/user_item_matrix.csv"
-
-# === Create recommender instance ===
-recommender = BookRecommender(matrix_path)
-
-# === Recommend books for a user ===
-target_user_id = 314
-recommendations = recommender.recommend_books(target_user_id, top_n=5)
-
-# === Print result ===
-print(f"\n📚 Top book recommendations for user {target_user_id}:")
-print(recommendations)
+if __name__ == "__main__":
+    user_id = input("Enter user ID: ")
+    if user_id not in user_item_matrix.index.astype(str):
+        print("User ID not found in database.")
+    else:
+        recommendations = recommend_books(user_id)
+        print("Recommended books for user", user_id)
+        for book in recommendations:
+            print(book)
