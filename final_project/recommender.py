@@ -1,25 +1,36 @@
-# recommender.py
+"""
+Book Recommender System using User-Based Collaborative Filtering.
+"""
 
 import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
-class BookRecommender:
-    def __init__(self, matrix_path):
-        self.user_item_matrix = pd.read_csv(matrix_path, index_col="user_id")
-        self.filled_matrix = self.user_item_matrix.fillna(0)
-        self.similarity_matrix = cosine_similarity(self.filled_matrix)
-        user_ids = self.filled_matrix.index.tolist()
-        self.user_sim_df = pd.DataFrame(self.similarity_matrix, index=user_ids, columns=user_ids)
+def recommend_books(user_id, top_n=5):
+    """
+    Recommend books for a given user based on user-user similarity.
 
-    def recommend_books(self, target_user_id, top_n=5):
-        similar_users = self.user_sim_df[target_user_id].drop(target_user_id).sort_values(ascending=False)
-        recommended = pd.Series(dtype=np.float64)
+    Parameters:
+    - user_id (str): The ID of the user to recommend books for.
+    - top_n (int): Number of top recommendations to return.
 
-        for other_user_id, sim_score in similar_users.items():
-            weighted = self.user_item_matrix.loc[other_user_id] * sim_score
-            recommended = recommended.add(weighted, fill_value=0)
+    Returns:
+    - list of recommended book titles
+    """
+    try:
+        similarity_matrix = pd.read_csv("data/user_similarity_matrix.csv", index_col=0)
+        user_item_matrix = pd.read_csv("data/user_item_matrix.csv", index_col=0)
 
-        already_rated = self.user_item_matrix.loc[target_user_id]
-        recommended = recommended[already_rated.isna()]
-        return recommended.sort_values(ascending=False).head(top_n)
+        if user_id not in similarity_matrix.index:
+            return ["User ID not found."]
+
+        user_similarities = similarity_matrix.loc[user_id]
+        weighted_scores = user_similarities @ user_item_matrix
+        normalization = user_similarities.sum()
+        recommendation_scores = weighted_scores / normalization
+
+        user_rated_books = user_item_matrix.loc[user_id]
+        recommendation_scores[user_rated_books > 0] = 0
+
+        top_books = recommendation_scores.sort_values(ascending=False).head(top_n).index.tolist()
+        return top_books
+    except Exception as e:
+        return [f"Error during recommendation: {str(e)}"]
